@@ -11,3 +11,7 @@ type ResponseBody struct {
 	Kelvin     float64 `json:"temp_K"`
 	City       string  `json:"city"`
 }
+
+type ErrorResponse struct {
+	Error string `json:"error"`
+}

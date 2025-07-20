@@ -104,7 +104,6 @@ func (ws *WeatherServiceImpl) GetClient() APIClient {
 // Recupera dados de localização com base em um CEP fornecido.
 func (ls *LocationServiceImpl) GetLocationFromCEP(cep string, chBrasilAPI, chViaCEP chan models.Location) (models.Location, error) {
 	timeout := time.After(10 * time.Second) // Set a timeout for the operation
-
 	// Asynchronously fetch data from the APIs
 	// Busca os dados de forma assíncrona das APIs
 	go ls.fetchFromBrasilAPI(cep, chBrasilAPI)
@@ -115,15 +114,15 @@ func (ls *LocationServiceImpl) GetLocationFromCEP(cep string, chBrasilAPI, chVia
 		if res.Localidade != nil {
 			return res, nil // Return location data if valid
 		}
+		return models.Location{}, errors.New("error searching for CEP data")
 	case res := <-chViaCEP: // Handle response from ViaCEP
 		if res.Localidade != nil {
 			return res, nil // Return location data if valid
 		}
+		return models.Location{}, errors.New("error searching for CEP data")
 	case <-timeout: // Timeout after 10 seconds
 		return models.Location{}, errors.New("timeout after 10 seconds") // Return timeout error
 	}
-
-	return models.Location{}, errors.New("error searching for CEP data") // Return error if neither API returns valid data
 }
 
 // fetchFromBrasilAPI fetches location data from the BrasilAPI.
@@ -165,6 +164,11 @@ func (ls *LocationServiceImpl) fetchFromViaCEP(cep string, ch chan models.Locati
 
 	var address models.ViaCEPResponse
 	if err := json.NewDecoder(resp.Body).Decode(&address); err != nil {
+		ch <- models.Location{} // Send empty location if decoding fails
+		return
+	}
+
+	if address.ErrorMessage == "true" {
 		ch <- models.Location{} // Send empty location if decoding fails
 		return
 	}

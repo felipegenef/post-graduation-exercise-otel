@@ -60,10 +60,14 @@ func (h *WeatherHandler) WeatherHandlerFunc() http.HandlerFunc {
 			serviceName = "service-b" // Se não houver, usa o nome "service-a"
 		}
 		tracer = otel.Tracer(serviceName)
+
 		carrier := propagation.HeaderCarrier(r.Header)
 		context := r.Context()
 		ctx := otel.GetTextMapPropagator().Extract(context, carrier)
-		_, serviceBRequestSpan := tracer.Start(ctx, "service-b-request")
+
+		// Cria o span para o serviço B
+		ctx, serviceBRequestSpan := tracer.Start(ctx, "service-b-request")
+
 		defer serviceBRequestSpan.End()
 		// Decodificando o corpo da requisição para obter o CEP
 		var requestBody RequestBody
@@ -72,7 +76,6 @@ func (h *WeatherHandler) WeatherHandlerFunc() http.HandlerFunc {
 			http.Error(w, "Invalid request body", http.StatusBadRequest)
 			return
 		}
-		tracer = otel.Tracer(serviceName)
 		if tracer == nil {
 			log.Println("Tracer is nil! There is a problem with initialization.")
 			http.Error(w, "Tracer initialization failed", http.StatusInternalServerError)
@@ -80,13 +83,12 @@ func (h *WeatherHandler) WeatherHandlerFunc() http.HandlerFunc {
 		} else {
 			log.Println("Tracer initialized successfully")
 		}
-		_, validateZipCodeSpan := tracer.Start(r.Context(), "validating-zip-code")
-		defer validateZipCodeSpan.End()
+		ctx, validateZipCodeSpan := tracer.Start(ctx, "validating-zip-code")
+
 		// Create channels for receiving location data from APIs
 		// Cria canais para receber dados de localização das APIs
 		chBrasilAPI := make(chan models.Location)
 		chViaCEP := make(chan models.Location)
-
 		// Validate the CEP input
 		// Valida o CEP fornecido
 		if !h.CepValidator.IsValidCep(requestBody.Cep) {
@@ -104,14 +106,15 @@ func (h *WeatherHandler) WeatherHandlerFunc() http.HandlerFunc {
 			json.NewEncoder(w).Encode(response)
 			validateZipCodeSpan.SetStatus(codes.Error, "Invalid Zip Code Sent")
 			serviceBRequestSpan.SetStatus(codes.Error, "Invalid Zip Code Sent")
+			validateZipCodeSpan.End()
 
 			return
 		}
 		validateZipCodeSpan.SetStatus(codes.Ok, "Valid Zip Code Sent")
 		serviceBRequestSpan.SetStatus(codes.Ok, "Valid Zip Code Sent")
+		validateZipCodeSpan.End()
 
-		_, getLocationFromZipCodeSpan := tracer.Start(r.Context(), "getting-zip-code-information")
-		defer getLocationFromZipCodeSpan.End()
+		ctx, getLocationFromZipCodeSpan := tracer.Start(ctx, "getting-zip-code-information")
 		// Fetch location data based on CEP, using channels to simulate multiple API responses
 		// Busca dados de localização com base no CEP, utilizando canais para simular múltiplas respostas de APIs
 		location, err := h.LocationService.GetLocationFromCEP(requestBody.Cep, chBrasilAPI, chViaCEP)
@@ -130,14 +133,15 @@ func (h *WeatherHandler) WeatherHandlerFunc() http.HandlerFunc {
 			json.NewEncoder(w).Encode(response)
 			getLocationFromZipCodeSpan.SetStatus(codes.Error, "Can not find zipcode")
 			serviceBRequestSpan.SetStatus(codes.Error, "Can not find zipcode")
+			getLocationFromZipCodeSpan.End()
 
 			return
 		}
 		getLocationFromZipCodeSpan.SetStatus(codes.Ok, "Found Zip Code")
 		serviceBRequestSpan.SetStatus(codes.Ok, "Found Zip Code")
+		getLocationFromZipCodeSpan.End()
 
-		_, getTemperatureSpan := tracer.Start(r.Context(), "getting-temerature-information")
-		defer getTemperatureSpan.End()
+		ctx, getTemperatureSpan := tracer.Start(ctx, "getting-temperature-information")
 		// Fetch temperature for the city
 		// Busca a temperatura para a cidade
 		tempC, err := h.WeatherService.GetTemperature(*location.City)
@@ -156,12 +160,14 @@ func (h *WeatherHandler) WeatherHandlerFunc() http.HandlerFunc {
 			json.NewEncoder(w).Encode(response)
 			getTemperatureSpan.SetStatus(codes.Error, "failed to get temperature")
 			serviceBRequestSpan.SetStatus(codes.Error, "failed to get temperature")
+			getTemperatureSpan.End()
 
 			return
 		}
 
 		getTemperatureSpan.SetStatus(codes.Ok, "Found Temperature")
 		serviceBRequestSpan.SetStatus(codes.Ok, "Found Temperature")
+		getTemperatureSpan.End()
 
 		// Convert temperature using the shared utility
 		// Converte a temperatura utilizando a ferramenta compartilhada

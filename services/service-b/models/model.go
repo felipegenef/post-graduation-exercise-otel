@@ -69,19 +69,20 @@ type ErrorResponse struct {
 // Structs para as respostas das APIs
 // Struct to hold the response from ViaCEP API
 type ViaCEPResponse struct {
-	CEP         string `json:"cep"`
-	Logradouro  string `json:"logradouro"`
-	Complemento string `json:"complemento"`
-	Unidade     string `json:"unidade"`
-	Bairro      string `json:"bairro"`
-	Localidade  string `json:"localidade"`
-	UF          string `json:"uf"`
-	Estado      string `json:"estado"`
-	Regiao      string `json:"regiao"`
-	IBGE        string `json:"ibge"`
-	GIA         string `json:"gia"`
-	DDD         string `json:"ddd"`
-	SIAFI       string `json:"siafi"`
+	CEP          string `json:"cep"`
+	Logradouro   string `json:"logradouro"`
+	Complemento  string `json:"complemento"`
+	Unidade      string `json:"unidade"`
+	Bairro       string `json:"bairro"`
+	Localidade   string `json:"localidade"`
+	UF           string `json:"uf"`
+	Estado       string `json:"estado"`
+	Regiao       string `json:"regiao"`
+	IBGE         string `json:"ibge"`
+	GIA          string `json:"gia"`
+	DDD          string `json:"ddd"`
+	SIAFI        string `json:"siafi"`
+	ErrorMessage string `json:"erro"`
 }
 
 // Struct para a resposta da BrasilAPI

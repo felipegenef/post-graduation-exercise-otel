@@ -8,7 +8,6 @@ import (
 	"os"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
 
 	handlers "service-b/handlers"
 	"service-b/helpers"
@@ -81,12 +80,6 @@ func main() {
 
 	// Cria o roteador Chi
 	r := chi.NewRouter()
-
-	// Adiciona os middlewares do Chi
-	r.Use(middleware.RequestID) // Middleware para RequestID
-	r.Use(middleware.RealIP)    // Middleware para pegar o IP real
-	r.Use(middleware.Recoverer) // Middleware para recuperação de panics
-	r.Use(middleware.Logger)    // Middleware para logging das requisições
 
 	// Obtém o handler de clima para lidar com requisições relacionadas ao clima
 	weatherHandler := getHandler()
