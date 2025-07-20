@@ -27,7 +27,7 @@ func ForwardRequest(w http.ResponseWriter, r *http.Request) {
 	// Define o tracer para ser usado nas requisições
 	tracer = otel.Tracer(serviceName)
 	// Inicia o span para a requisição
-	ctx, span := tracer.Start(r.Context(), "forward-request-to-service-b")
+	ctx, span := tracer.Start(r.Context(), "service-a-request")
 	defer span.End() // Finaliza o span quando a função terminar
 
 	// Decodifica o corpo da requisição

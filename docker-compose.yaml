@@ -6,8 +6,11 @@ services:
       - "8080:8080"
     environment:
       - SERVICE_B_URL=http://service-b:8081
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
+      - OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector:4317
       - OTEL_SERVICE_NAME=service-a
+      - PORT=8080
+    networks:
+      - app-network
     depends_on:
       - otel-collector
       - service-b
@@ -19,8 +22,11 @@ services:
       - "8081:8081"
     environment:
       - WEATHER_API_KEY=${WEATHER_API_KEY}
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
+      - OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector:4317
       - OTEL_SERVICE_NAME=service-b
+      - PORT=8081
+    networks:
+      - app-network
     depends_on:
       - otel-collector
 
@@ -30,11 +36,13 @@ services:
     command: ["--config=/etc/otel-collector-config.yaml"]
     volumes:
       - ./.docker/otel-collector-config.yaml:/etc/otel-collector-config.yaml
+    networks:
+      - app-network
     depends_on:
       - zipkin
     ports:
       - "4318:4318"   # HTTP OTLP
-      - "4317:4317"   # gRPC OTLP (opcional)
+      - "4317:4317"   # gRPC OTLP
       - "8888:8888"   # métricas
 
   zipkin:
@@ -44,3 +52,9 @@ services:
       - "9411:9411"
     environment:
       - STORAGE_TYPE=mem
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge

@@ -1,6 +1,8 @@
 package main
 
 import (
+	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -61,9 +63,18 @@ func main() {
 		serviceName = "service-a" // Se não houver, usa o nome "service-a"
 	}
 
+	otelEndpoint := os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+	if otelEndpoint == "" {
+		otelEndpoint = "otel-collector:4317"
+	}
+
 	// Inicializa o Tracer
-	shutdown := helpers.InitTracer(serviceName)
-	defer shutdown()
+	shutdown, err := helpers.InitTracer(serviceName, otelEndpoint)
+	if err != nil {
+		fmt.Errorf("error initializing tracer %w", err)
+		// panic("error initializing tracer")
+	}
+	defer shutdown(context.Background())
 
 	// Get the weather handler to handle incoming weather-related requests
 	// Obtém o handler de clima para lidar com requisições relacionadas ao clima
@@ -77,7 +88,7 @@ func main() {
 	// Obtém o número da porta da variável de ambiente, padrão para "8080" se não estiver definida
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "8080" // Default port if not provided
+		port = "8081" // Default port if not provided
 	}
 
 	// Log the port the server is running on

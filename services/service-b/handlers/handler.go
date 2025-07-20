@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"os"
 	"service-b/models"
@@ -67,6 +68,13 @@ func (h *WeatherHandler) WeatherHandlerFunc() http.HandlerFunc {
 			return
 		}
 		tracer = otel.Tracer(serviceName)
+		if tracer == nil {
+			log.Println("Tracer is nil! There is a problem with initialization.")
+			http.Error(w, "Tracer initialization failed", http.StatusInternalServerError)
+			return
+		} else {
+			log.Println("Tracer initialized successfully")
+		}
 		_, validateZipCodeSpan := tracer.Start(r.Context(), "validating-zip-code")
 		defer validateZipCodeSpan.End()
 		// Create channels for receiving location data from APIs

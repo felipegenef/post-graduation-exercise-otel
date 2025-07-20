@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
@@ -17,17 +18,30 @@ func main() {
 		serviceName = "service-a" // Se não houver, usa o nome "service-a"
 	}
 
+	otelEndpoint := os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+	if otelEndpoint == "" {
+		otelEndpoint = "otel-collector:4317"
+	}
+
 	// Inicializa o Tracer
-	shutdown := helpers.InitTracer(serviceName)
-	defer shutdown()
+	shutdown, err := helpers.InitTracer(serviceName, otelEndpoint)
+	if err != nil {
+		fmt.Errorf("error initializing tracer %w", err)
+		// panic("error initializing tracer")
+	}
+	defer shutdown(context.Background())
 
 	// Configura o handler para a rota POST /
 	http.HandleFunc("/", handlers.ForwardRequest)
 
 	// Inicia o servidor HTTP na porta 8080
-	port := ":8080"
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080" // Default port if not provided
+	}
+
 	fmt.Printf("Serviço A rodando na porta %s...\n", port)
-	if err := http.ListenAndServe(port, nil); err != nil {
+	if err := http.ListenAndServe(":"+port, nil); err != nil {
 		log.Fatalf("failed to start server: %v", err)
 	}
 }
