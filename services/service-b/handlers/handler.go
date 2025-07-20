@@ -11,6 +11,7 @@ import (
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -58,7 +59,11 @@ func (h *WeatherHandler) WeatherHandlerFunc() http.HandlerFunc {
 		if serviceName == "" {
 			serviceName = "service-b" // Se não houver, usa o nome "service-a"
 		}
-		_, serviceBRequestSpan := tracer.Start(r.Context(), "service-b-request")
+		tracer = otel.Tracer(serviceName)
+		carrier := propagation.HeaderCarrier(r.Header)
+		context := r.Context()
+		ctx := otel.GetTextMapPropagator().Extract(context, carrier)
+		_, serviceBRequestSpan := tracer.Start(ctx, "service-b-request")
 		defer serviceBRequestSpan.End()
 		// Decodificando o corpo da requisição para obter o CEP
 		var requestBody RequestBody

@@ -7,6 +7,9 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
+
 	handlers "service-b/handlers"
 	"service-b/helpers"
 	"service-b/models"
@@ -57,10 +60,10 @@ func getHandler() *handlers.WeatherHandler {
 // main function that starts the HTTP server
 // Função main que inicia o servidor HTTP
 func main() {
-
+	// Recupera o nome do serviço da variável de ambiente OTEL_SERVICE_NAME
 	serviceName := os.Getenv("OTEL_SERVICE_NAME")
 	if serviceName == "" {
-		serviceName = "service-a" // Se não houver, usa o nome "service-a"
+		serviceName = "service-b" // Se não houver, usa o nome "service-b"
 	}
 
 	otelEndpoint := os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
@@ -76,26 +79,30 @@ func main() {
 	}
 	defer shutdown(context.Background())
 
-	// Get the weather handler to handle incoming weather-related requests
+	// Cria o roteador Chi
+	r := chi.NewRouter()
+
+	// Adiciona os middlewares do Chi
+	r.Use(middleware.RequestID) // Middleware para RequestID
+	r.Use(middleware.RealIP)    // Middleware para pegar o IP real
+	r.Use(middleware.Recoverer) // Middleware para recuperação de panics
+	r.Use(middleware.Logger)    // Middleware para logging das requisições
+
 	// Obtém o handler de clima para lidar com requisições relacionadas ao clima
 	weatherHandler := getHandler()
 
-	// Define the route for weather data, and associate it with the WeatherHandler
 	// Define a rota para os dados do clima e associa com o WeatherHandler
-	http.HandleFunc("/", weatherHandler.WeatherHandlerFunc())
+	r.Post("/", weatherHandler.WeatherHandlerFunc()) // Mudando para método POST
 
-	// Get the port number from environment variable, default to "8080" if not set
-	// Obtém o número da porta da variável de ambiente, padrão para "8080" se não estiver definida
+	// Obtém o número da porta da variável de ambiente, padrão para "8081" se não estiver definida
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8081" // Default port if not provided
 	}
 
-	// Log the port the server is running on
 	// Registra o número da porta em que o servidor está rodando
 	log.Printf("Server running on port %s", port)
 
-	// Start the HTTP server and log any fatal errors
 	// Inicia o servidor HTTP e registra qualquer erro fatal
-	log.Fatal(http.ListenAndServe(":"+port, nil))
+	log.Fatal(http.ListenAndServe(":"+port, r))
 }

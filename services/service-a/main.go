@@ -7,6 +7,9 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
+
 	"service-a/handlers"
 	helpers "service-a/helpers" // Importando o InitTracer de Helpers/otel.go
 )
@@ -31,8 +34,17 @@ func main() {
 	}
 	defer shutdown(context.Background())
 
+	// Cria o roteador Chi
+	r := chi.NewRouter()
+
+	// Adiciona os middlewares do Chi
+	r.Use(middleware.RequestID) // Middleware para RequestID
+	r.Use(middleware.RealIP)    // Middleware para pegar o IP real
+	r.Use(middleware.Recoverer) // Middleware para recuperação de panics
+	r.Use(middleware.Logger)    // Middleware para logging das requisições
+
 	// Configura o handler para a rota POST /
-	http.HandleFunc("/", handlers.ForwardRequest)
+	r.Post("/", handlers.ForwardRequest)
 
 	// Inicia o servidor HTTP na porta 8080
 	port := os.Getenv("PORT")
@@ -41,7 +53,7 @@ func main() {
 	}
 
 	fmt.Printf("Serviço A rodando na porta %s...\n", port)
-	if err := http.ListenAndServe(":"+port, nil); err != nil {
+	if err := http.ListenAndServe(":"+port, r); err != nil {
 		log.Fatalf("failed to start server: %v", err)
 	}
 }

@@ -3,6 +3,7 @@ module service-b
 go 1.23.3
 
 require (
+	github.com/go-chi/chi/v5 v5.2.2
 	github.com/stretchr/testify v1.10.0
 	go.opentelemetry.io/otel v1.37.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.37.0
